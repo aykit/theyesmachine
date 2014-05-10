@@ -1,0 +1,73 @@
+import os
+from SCons.Environment import Environment
+from SCons.Builder import Builder
+from SCons.Script import Default
+
+product_name = "sam3s_minimal"
+
+linker_script = "../lib/asf/sam/utils/linker_scripts/sam3s/sam3s4/gcc/flash.ld"
+
+product_binary = product_name + ".bin"
+product_executable = product_name + ".elf"
+
+binary_builder = Builder(action="$OBJCOPY -O binary $SOURCE $TARGET")
+flash_builder = Builder(
+    action="openocd -f board/olimex-sam3.cfg -s ../openocd "
+           "-c 'program $SOURCE verify reset'")
+usb_flash_builder = Builder(action="../tools/sam3s_usb_flash $SOURCE")
+
+env = Environment(
+    ENV={"PATH": os.environ["PATH"]},
+
+    CC="arm-none-eabi-gcc",
+    OBJCOPY="arm-none-eabi-objcopy",
+    OBJDUMP="arm-none-eabi-objdump",
+
+    CFLAGS=[
+        "-mcpu=cortex-m3", "-mthumb", "-Wall", "-g", "-std=gnu99",
+        "-ffunction-sections", "-fdata-sections",
+    ],
+    LINKFLAGS=[
+        "-mcpu=cortex-m3", "-mthumb",
+        "-Wl,--gc-sections", "-Wl,--entry=Reset_Handler",
+        "-Wl,-T" + linker_script,
+    ],
+
+    CPPDEFINES=["__SAM3S4B__"],
+
+    CPPPATH=[
+        "../lib/asf/common/utils",
+        "../lib/asf/sam/utils",
+        "../lib/asf/sam/utils/cmsis/sam3s/include",
+        "../lib/asf/sam/utils/cmsis/sam3s/source/templates",
+        "../lib/asf/sam/utils/header_files",
+        "../lib/asf/sam/utils/preprocessor",
+        "../lib/cmsis/CMSIS/Include",
+    ],
+
+    BUILDERS={
+        "Binary": binary_builder,
+        "Flash": flash_builder,
+        "USBFlash": usb_flash_builder,
+    },
+
+    CCCOMSTR="Compiling $TARGET",
+    LINKCOMSTR="Linking $TARGET",
+)
+
+env.Program(
+    target=product_executable,
+    source=[
+        "src/main.c",
+        "../lib/asf/sam/utils/cmsis/sam3s/source/templates/gcc/startup_sam3s.c",
+        "../lib/asf/sam/utils/cmsis/sam3s/source/templates/exceptions.c",
+    ],
+)
+
+binary = env.Binary(target=product_binary, source=product_executable)
+
+env.Flash(target="flash", source=product_executable)
+env.USBFlash(target="usbflash", source=product_binary)
+
+Default(product_executable)
+Clean(product_executable, product_binary)

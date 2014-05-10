@@ -1,0 +1,7 @@
+*.o
+*.elf
+*.bin
+.sconsign.dblite
+
+/code/lib/asf/
+/code/lib/cmsis/

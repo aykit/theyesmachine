@@ -1,0 +1,18 @@
+#!/bin/bash
+
+bossac -ewv "$1" || exit 1
+
+(
+bossash <<END
+scan
+mrw 0x00400000
+END
+) | grep 00400000 | grep -v ffffffff > /dev/null
+
+if [ "$?" = "0" ];
+then
+	bossac -b
+else
+	echo Read check failed
+	exit 1
+fi

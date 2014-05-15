@@ -116,9 +116,14 @@ int main(void)
 		}
 		while (btn1 && btn2);
 		if (btn2)
+		{
 			send_str("yes ");
+		}
 		else
+		{
 			send_str("no ");
+		}
+
 		while (!pio_get(BUTTONS_PIO, PIO_INPUT, BUTTON1) ||
 		       !pio_get(BUTTONS_PIO, PIO_INPUT, BUTTON2));
 	}
